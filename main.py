@@ -92,7 +92,8 @@ def load_data(file_path):
         df_cleaned['cleaned_featuresMap'] + ' ' +
         (df_cleaned['brand'] + ' ') * 15
     )
-
+    output_csv_path = r"C:\Users\s00336\Desktop\test.csv"
+    df_cleaned.to_csv(output_csv_path, index=False)
     return df_cleaned
 
 #CANDIDATE PAIR GENERATION
@@ -127,7 +128,7 @@ def generate_candidate_pairs(buckets, df):
                     idx_j = indices[j]
                     shop_j = df.loc[idx_j, 'shop']
                     brand_j = df.loc[idx_j, 'brand']
-                    # Consider pairs from different shops with the same non-empty brand
+                    # Consider pairs only from different shops and same brand
                     if shop_i != shop_j and brand_i == brand_j and brand_i != '':
                         candidate_pairs.add(tuple(sorted((idx_i, idx_j))))
     return candidate_pairs
@@ -235,7 +236,6 @@ def bootstrap_evaluation(df, n_bootstrap=3, n_components=50, threshold_candidate
             labels = clustering.labels_
             TP, FP, FN, precision, recall, f1, predicted_duplicates = evaluate_clustering(unique_products, labels, duplicate_pairs, candidate_pairs)
             predicted_duplicates = predicted_duplicates.intersection(candidate_pairs)
-
             PQ = TP / len(candidate_pairs) if len(candidate_pairs) > 0 else 0
             PC = TP / total_duplicates if total_duplicates > 0 else 0
             f1_star = 2*(PQ*PC)/(PQ+PC) if (PQ+PC)>0 else 0
@@ -278,7 +278,6 @@ def bootstrap_evaluation(df, n_bootstrap=3, n_components=50, threshold_candidate
         metrics['PQ'].append(PQ)
         metrics['PC'].append(PC)
         metrics['f1_star'].append(f1_star)
-
     return {metric: np.mean(values) for metric, values in metrics.items()}
 
 
@@ -295,10 +294,8 @@ if __name__ == "__main__":
     results_list = Parallel(n_jobs=-1)(
         delayed(bootstrap_evaluation)(df, n_bootstrap=20, n_components=n) for n in n_range
     )
-
     for res, n in zip(results_list, n_range):
         res['n_components'] = n
-
     aggregated_results = pd.DataFrame(results_list)
 
     # PQ
